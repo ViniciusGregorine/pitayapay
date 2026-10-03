@@ -15,7 +15,6 @@ await app.listen({ port: config.port, host: '0.0.0.0' })
 
 // Long polling: no public domain needed for the MVP.
 
-app.log.debug(`Starting bot with API KEY = ${config.telegramToken}`)
 bot.start({ onStart: (me) => app.log.info(`Bot @${me.username} started`) }).catch((error) => {
   app.log.error({ err: error }, 'Telegram bot stopped')
   process.exit(1)

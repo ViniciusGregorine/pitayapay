@@ -5,9 +5,11 @@ set -Eeuo pipefail
 ALLOWED_DOMAINS=(
   registry.npmjs.org
   api.anthropic.com
-  registry.npmjs.org 
-  api.anthropic.com 
+  registry.npmjs.org
+  api.anthropic.com
   binaries.prisma.sh
+  api.telegram.org
+  routellm.abacus.ai
 )
 
 if [[ "$(id -u)" != "0" ]]; then
