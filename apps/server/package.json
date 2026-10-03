@@ -1,0 +1,20 @@
+{
+  "name": "@pitayapay/server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "dev": "node --env-file-if-exists=../../.env --watch src/index.js",
+    "start": "node --env-file-if-exists=../../.env src/index.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@fastify/jwt": "^10.2.2",
+    "@fastify/static": "^10.1.5",
+    "@pitayapay/shared": "*",
+    "@prisma/client": "~6.19.3",
+    "fastify": "^5.12.5",
+    "grammy": "^1.46.0"
+  }
+}

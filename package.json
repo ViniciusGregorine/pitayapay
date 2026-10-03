@@ -1,0 +1,21 @@
+{
+  "name": "pitayapay",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "db:push": "prisma db push",
+    "db:generate": "prisma generate",
+    "dev:server": "npm run dev -w @pitayapay/server",
+    "dev:web": "npm run dev -w @pitayapay/web",
+    "build": "npm run build -w @pitayapay/web",
+    "start": "npm start -w @pitayapay/server",
+    "test": "npm test -w @pitayapay/server"
+  },
+  "devDependencies": {
+    "prisma": "^6.12.0"
+  }
+}

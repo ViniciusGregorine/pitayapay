@@ -1,0 +1,48 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           Int           @id @default(autoincrement())
+  telegramId   String        @unique
+  name         String
+  createdAt    DateTime      @default(now())
+  drafts       Draft[]
+  transactions Transaction[]
+  loginTokens  LoginToken[]
+}
+
+model Draft {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  rawText    String
+  parsedJson String // JSON string of what the LLM extracted
+  status     String // "pending" | "confirmed" | "cancelled"
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id])
+}
+
+model Transaction {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  type        String // "income" | "expense"
+  amountCents Int // value in cents (avoids float)
+  date        DateTime
+  category    String
+  description String
+  rawText     String
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id])
+}
+
+model LoginToken {
+  token     String   @id
+  userId    Int
+  expiresAt DateTime
+  user      User     @relation(fields: [userId], references: [id])
+}
