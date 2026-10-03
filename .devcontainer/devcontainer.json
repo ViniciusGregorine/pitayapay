@@ -1,0 +1,72 @@
+{
+  "name": "pitayapay — Claude sandbox",
+
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": "."
+  },
+
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind",
+  "workspaceFolder": "/workspace",
+
+  "mounts": [
+    "source=${localWorkspaceFolder}/.devcontainer,target=/workspace/.devcontainer,type=bind,readonly",
+    "source=pitayapay-claude-config-${devcontainerId},target=/home/node/.claude,type=volume"
+  ],
+
+  "containerUser": "root",
+  "remoteUser": "node",
+  "updateRemoteUserUID": true,
+  "overrideCommand": false,
+  "shutdownAction": "stopContainer",
+
+  "runArgs": [
+    "--init",
+    "--cap-drop=ALL",
+    "--cap-add=NET_ADMIN",
+    "--cap-add=SETUID",
+    "--cap-add=SETGID",
+    "--security-opt=no-new-privileges:true",
+    "--sysctl=net.ipv6.conf.all.disable_ipv6=1",
+    "--sysctl=net.ipv6.conf.default.disable_ipv6=1",
+    "--memory=4g",
+    "--cpus=2",
+    "--pids-limit=512"
+  ],
+
+  "containerEnv": {
+    "CLAUDE_CONFIG_DIR": "/home/node/.claude",
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
+    "DISABLE_AUTOUPDATER": "1",
+    "NPM_CONFIG_REGISTRY": "https://registry.npmjs.org",
+    "GIT_CONFIG_COUNT": "1",
+    "GIT_CONFIG_KEY_0": "credential.helper",
+    "GIT_CONFIG_VALUE_0": "/bin/false"
+  },
+
+  "remoteEnv": {
+    "SSH_AUTH_SOCK": "",
+    "GPG_AGENT_INFO": "",
+    "GH_TOKEN": "",
+    "GITHUB_TOKEN": "",
+    "GIT_ASKPASS": "/bin/false",
+    "SSH_ASKPASS": "/bin/false",
+    "GIT_TERMINAL_PROMPT": "0",
+    "VSCODE_IPC_HOOK_CLI": null,
+    "VSCODE_GIT_IPC_HANDLE": null,
+    "REMOTE_CONTAINERS_IPC": null,
+    "REMOTE_CONTAINERS_SOCKETS": null,
+    "REMOTE_CONTAINERS_DISPLAY_SOCK": null
+  },
+
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "git.terminalAuthentication": false,
+        "github.gitAuthentication": false,
+        "remote.autoForwardPorts": false
+      }
+    }
+  }
+}
