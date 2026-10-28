@@ -23,6 +23,7 @@ Consulte os arquivos de referência abaixo antes de qualquer implementação:
 4. **Sem over-engineering:** SQLite é suficiente para < 10 usuários. Não troque por Postgres sem necessidade demonstrada.
 5. **Nomes em inglês no código** (variáveis, funções, arquivos). Mensagens ao usuário em português.
 6. **Erros explícitos:** toda falha de LLM, de DB ou de Telegram deve logar a causa raiz e responder ao usuário com mensagem amigável — nunca silenciar exceções.
+7. **TDD obrigatório:** todo código em `apps/server` e `packages/shared` nasce de um teste que falhou (red → green → refactor). Siga `.claude/skills/tdd-pitayapay/SKILL.md`; `npm test` e `npm run test:coverage` devem ficar verdes.
 
 ## Decisões técnicas fixas
 

@@ -41,7 +41,7 @@ Legenda: ✅ implementado · 🟡 parcial/simplificado · 🔁 substituído por 
 | Front | Vite + React, 1 página | Sem SSR, sem roteador, sem biblioteca de estado. |
 | Banco | SQLite + Prisma **6.19.x** | Zero infraestrutura para < 10 usuários. |
 | LLM | API compatível com OpenAI (RouteLLM da Abacus) em JSON mode | Provedor trocável por variável de ambiente. |
-| Testes | `node:test` nativo | Nenhuma dependência de teste. |
+| Testes | `node:test` nativo, TDD, cobertura nativa do Node (portão 80% linhas / 70% branches / 80% funções) | Nenhuma dependência de teste. Integração com SQLite real (`prisma/test.db`); LLM e Telegram sempre fakes. Ver `.claude/skills/tdd-pitayapay/`. |
 
 ## 3. Decisões e justificativas
 
