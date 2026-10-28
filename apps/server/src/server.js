@@ -8,8 +8,8 @@ import { transactionRoutes } from './routes/transactions.js'
 
 const WEB_DIST_DIR = fileURLToPath(new URL('../../web/dist', import.meta.url))
 
-export async function buildServer({ jwtSecret }) {
-  const app = Fastify({ logger: true })
+export async function buildServer({ jwtSecret, logger = true }) {
+  const app = Fastify({ logger })
 
   await app.register(fastifyJwt, { secret: jwtSecret })
   app.decorate('authenticate', async (request, reply) => {

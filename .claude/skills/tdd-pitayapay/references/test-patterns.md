@@ -27,6 +27,17 @@ apps/server/test/
 
 Um arquivo de teste por módulo: `src/db/drafts.js` → `test/integration/drafts.test.js`.
 
+Helpers existentes (reuse antes de criar outro):
+
+| Arquivo | Exporta | Uso |
+|---|---|---|
+| `helpers/db.js` | `resetDatabase`, `disconnectDatabase`, `seedTransaction` | Isolamento e dados de lançamentos |
+| `helpers/server.js` | `buildTestServer`, `loginAs` | Fastify sem logger + sessão JWT válida |
+| `helpers/telegram.js` | `fakeCtx` | `ctx` falso para chamar handlers direto |
+| `helpers/telegram.js` | `captureTelegramApi`, `deliver`, `textUpdate`, `buttonUpdate` | `Bot` real do grammY offline; `deliver` repete o long polling (erros vão para `bot.catch`) |
+
+Modelos completos por camada: `test/integration/handlers.test.js`, `test/integration/bot.test.js`, `test/integration/transactionsRoute.test.js` e `test/e2e/mvpFlow.test.js`.
+
 ## Unit: função pura
 
 ```js
@@ -152,7 +163,7 @@ Casos obrigatórios: rascunho completo → botões ✅✏️❌; campo faltando 
 
 ## E2E: critério de pronto do MVP
 
-Um arquivo `test/e2e/mvp-flow.test.js` que reproduz o critério de `skills/SKILL.md`: usuário novo → 3 lançamentos (um com correção) via `onText`/`onDraftAction` → `onPanel` (extrair o token da URL de `ctx.reply`) → `POST /api/auth/magic` → `GET /api/transactions` retorna os 3 com os totais certos. LLM fake com respostas roteirizadas por mensagem.
+`test/e2e/mvpFlow.test.js` reproduz o critério de `skills/SKILL.md`: usuário novo → 3 lançamentos (um com correção) via `onText`/`onDraftAction` → `onPanel` (extrair o token da URL de `ctx.reply`) → `POST /api/auth/magic` → `GET /api/transactions` retorna os 3 com os totais certos. Usa o `Bot` real (`captureTelegramApi` + `deliver`) e o extrator real com `callLLM` roteirizado por mensagem; os ids dos rascunhos vêm dos botões enviados, como faria o usuário. Mantenha um único teste E2E; casos novos vão para integration.
 
 ## Tempo e fuso horário
 
@@ -178,4 +189,6 @@ Quando um bug vier de uma resposta inesperada da LLM, salve a resposta real em `
 - `assert.ok(result)` quando dá para comparar o valor exato.
 - Testar detalhes privados (ex.: chamar `toCents` exportado só para teste). Teste via `normalizeExtraction`.
 - `setTimeout`/`sleep` para esperar algo.
+- Chamar `bot.handleUpdates` (interno do grammY); use `deliver`.
+- Literais com `R$ 250,10`: o `Intl` usa espaço não separável. Escreva `'R$\u00a0250,10'`.
 - Snapshot de mensagens inteiras quando só uma parte importa — use `assert.match`.

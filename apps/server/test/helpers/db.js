@@ -13,3 +13,18 @@ export async function resetDatabase() {
 export function disconnectDatabase() {
   return prisma.$disconnect()
 }
+
+export function seedTransaction(userId, overrides = {}) {
+  return prisma.transaction.create({
+    data: {
+      userId,
+      type: 'expense',
+      amountCents: 1000,
+      date: new Date('2026-10-01'),
+      category: 'Outros',
+      description: '',
+      rawText: '',
+      ...overrides,
+    },
+  })
+}
