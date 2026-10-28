@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm --version)",
+      "Bash(npm config *)",
+      "Bash(timeout 10 npm view fastify version)"
+    ]
+  }
+}

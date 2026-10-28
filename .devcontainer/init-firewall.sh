@@ -44,6 +44,8 @@ iptables -w -A OUTPUT -o lo -j ACCEPT
 iptables -w -A INPUT \
   -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
 
+iptables -w -A INPUT -p tcp --dport 3000 -j ACCEPT
+
 iptables -w -A OUTPUT \
   -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
 

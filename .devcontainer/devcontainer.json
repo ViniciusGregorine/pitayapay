@@ -9,6 +9,8 @@
   "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind",
   "workspaceFolder": "/workspace",
 
+  "forwardPorts": [3000],
+
   "mounts": [
     "source=${localWorkspaceFolder}/.devcontainer,target=/workspace/.devcontainer,type=bind,readonly",
     "source=pitayapay-claude-config-${devcontainerId},target=/home/node/.claude,type=volume"
@@ -65,7 +67,7 @@
         "terminal.integrated.defaultProfile.linux": "bash",
         "git.terminalAuthentication": false,
         "github.gitAuthentication": false,
-        "remote.autoForwardPorts": false
+        "remote.autoForwardPorts": false 
       }
     }
   }
