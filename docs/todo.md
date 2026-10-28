@@ -1,0 +1,5 @@
+- [x] Adicionar heavy testes automatizados
+- [x] Adicionar feature de editar na tela
+- [ ] Adiconar feature de filtrar registros
+- [ ] Adicionar features de enviar audio
+- [ ] Adicionar features de chat 

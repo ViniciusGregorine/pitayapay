@@ -21,6 +21,13 @@ export async function buildServer({ jwtSecret, logger = true }) {
     }
   })
 
+  // Keeps every API error in the same { error } shape, with a message the panel can show as-is.
+  app.setErrorHandler((error, request, reply) => {
+    if (!error.validation) return reply.send(error)
+    request.log.info({ err: error }, 'Rejected request with invalid data')
+    return reply.code(400).send({ error: 'Dados inválidos. Verifique os campos e tente novamente.' })
+  })
+
   await app.register(authRoutes)
   await app.register(transactionRoutes)
 

@@ -62,3 +62,66 @@ tr.expense .amount {
 .error {
   color: #c62828;
 }
+
+button {
+  padding: 0.35rem 0.75rem;
+  border: 1px solid #1a7f37;
+  border-radius: 6px;
+  background: #1a7f37;
+  color: #fff;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+button.secondary {
+  border-color: #ccc;
+  background: #fff;
+  color: #222;
+}
+
+button.danger {
+  border-color: #c62828;
+  background: #fff;
+  color: #c62828;
+}
+
+.actions {
+  white-space: nowrap;
+  text-align: right;
+}
+
+.actions button + button {
+  margin-left: 0.4rem;
+}
+
+tr.editing {
+  background: #f3f8f4;
+}
+
+.edit-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.edit-form input,
+.edit-form select {
+  padding: 0.35rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font: inherit;
+}
+
+.edit-form input[inputmode='decimal'] {
+  width: 8rem;
+}
+
+.edit-form .error {
+  flex-basis: 100%;
+  margin: 0;
+}

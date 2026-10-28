@@ -22,13 +22,13 @@ Legenda: ✅ implementado · 🟡 parcial/simplificado · 🔁 substituído por 
 | RF11 — Editar campos identificados pela IA | 🟡 | Botão ✏️ Corrigir: o usuário descreve a correção em texto livre e a IA refaz a extração a partir da anterior. Não há edição campo a campo. |
 | RF12 — Só vale após confirmação | ✅ | Só o botão ✅ Confirmar grava em `Transaction`; antes disso é um `Draft`. Confirmar e salvar acontecem na mesma transação de banco. |
 | RF13 — Aprender com correções | ⏸️ | O texto original e as correções ficam em `rawText`, mas não são usados para treinar/ajustar classificações. |
-| RF14 — Listagem de lançamentos | 🟡 | Painel web somente-leitura com Data, Tipo, Valor, Categoria e Descrição + totais de Receitas, Despesas e Saldo. Sem coluna Atividade. |
+| RF14 — Listagem de lançamentos | 🟡 | Painel web com Data, Tipo, Valor, Categoria e Descrição + totais de Receitas, Despesas e Saldo. Sem coluna Atividade. |
 | RF15 — Filtros | ⏸️ | — |
-| RF16 — Alterar lançamento salvo | ⏸️ | Possível via chat na v2. |
-| RF17 — Excluir lançamento | ⏸️ | Possível via chat na v2. |
+| RF16 — Alterar lançamento salvo | ✅ | Botão **Editar** em cada linha do painel abre um formulário na própria linha (tipo, valor, data, categoria, descrição). `PUT /api/transactions/:id`. |
+| RF17 — Excluir lançamento | ✅ | Botão **Excluir** em cada linha, com confirmação. `DELETE /api/transactions/:id`. A exclusão é definitiva. |
 | RF18–RF22 — Chat financeiro com IA | ⏸️ | — |
 
-**Resumo:** os requisitos M1–M5 do MVP estão cobertos (RF04, RF06, RF07, RF09–RF12, RF14, em versão simplificada). RF01/RF02 foram substituídos pelo login via Telegram. Os demais ficam para depois do MVP.
+**Resumo:** os requisitos M1–M5 do MVP estão cobertos (RF04, RF06, RF07, RF09–RF12, RF14, em versão simplificada). RF01/RF02 foram substituídos pelo login via Telegram. RF16 e RF17 foram adicionados depois do MVP, pelo painel web. Os demais ficam para depois do MVP.
 
 ## 2. Stack
 
@@ -71,6 +71,16 @@ O Prisma 7+ exige driver adapters e `prisma.config.ts`, o que adiciona complexid
 - **Dinheiro em centavos (`Int`)**, nunca float.
 - **Datas:** "hoje" é calculado no fuso `America/Sao_Paulo`. A data do lançamento é guardada como meia-noite UTC e exibida como `AAAA-MM-DD` → `DD/MM/AAAA`, sem conversão de fuso, para não "voltar um dia".
 - Schema igual ao de `architecture.md`: `User`, `Draft`, `Transaction`, `LoginToken`. Nenhum campo extra.
+
+### Edição e exclusão no painel (RF16/RF17)
+- **`PUT` com o lançamento completo** (não `PATCH` parcial): o formulário sempre envia os 5 campos editáveis, então a validação é uma só e não há caso de "campo ausente = manter".
+- **O servidor valida tudo** via JSON Schema do Fastify: tipo e categoria só das listas de `packages/shared`, `amountCents` inteiro ≥ 1, data `AAAA-MM-DD` real (`2026-02-30` é rejeitada). Campos extras (ex.: `userId`) são descartados.
+- **`rawText` não é editável:** continua guardando o texto original enviado no Telegram.
+- **Dono checado na própria query** (`where: { id, userId }`): lançamento de outro usuário e lançamento inexistente respondem igual, `404`, sem revelar que o id existe. O tratamento de "não encontrado" do Prisma (`P2025`) ficou em `nullIfNotFound` (`db/client.js`), usado também pelo magic link.
+- **Erros de validação em português:** um error handler devolve `400 { error: "Dados inválidos…" }`, no mesmo formato `{ error }` das outras rotas. Erros inesperados continuam como `500` e são logados.
+- **Valor digitado em reais, convertido sem float:** `parseAmountToCents` (`packages/shared`) aceita `250`, `250,10`, `1.250,10` e `12.5`, e rejeita zero, negativos e formatos ambíguos. O front valida antes de enviar; o servidor valida de novo.
+- **Exclusão definitiva** (sem lixeira/soft delete), com confirmação no navegador. Após salvar ou excluir, o painel recarrega a lista para os totais virem do servidor.
+- **Sessão só é descartada em `401`:** um erro de validação não desloga o usuário.
 
 ### Autenticação
 - O magic link é um token aleatório de 32 bytes, com validade de 15 min e **uso único**. A leitura e a exclusão acontecem numa única operação (`delete`), então dois acessos simultâneos não usam o mesmo link.
