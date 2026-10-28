@@ -56,14 +56,18 @@ export function createHandlers({ extractTransaction, publicUrl }) {
 
   async function onDraftAction(ctx) {
     const [, action, draftId] = ctx.match
+    console.debug('[debug] draft action', { action, draftId })
     const user = await currentUser(ctx)
     const draft = await findPendingDraftById(user.id, Number(draftId))
+    console.debug('[debug] pending draft found:', Boolean(draft))
     if (!draft) return ctx.answerCallbackQuery(msg.DRAFT_NOT_FOUND)
 
     if (action === 'confirm') {
       if (draft.parsed.missing.length > 0) return ctx.answerCallbackQuery(msg.DRAFT_INCOMPLETE)
       await confirmDraftAsTransaction(draft)
+      console.debug('[debug] transaction saved, editing message')
       await ctx.editMessageText(msg.savedMessage(draft.parsed))
+      console.debug('[debug] message edited')
     } else if (action === 'cancel') {
       await cancelDraft(draft.id)
       await ctx.editMessageText(msg.cancelledMessage())

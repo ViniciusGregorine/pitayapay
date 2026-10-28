@@ -6,6 +6,11 @@ export function createBot({ token, extractTransaction, publicUrl }) {
   const bot = new Bot(token)
   const handlers = createHandlers({ extractTransaction, publicUrl })
 
+  bot.use(async (ctx, next) => {
+    console.debug('[debug] update', ctx.update.update_id, Object.keys(ctx.update))
+    await next()
+  })
+
   bot.command('start', handlers.onStart)
   bot.command('painel', handlers.onPanel)
   bot.callbackQuery(/^(confirm|correct|cancel):(\d+)$/, handlers.onDraftAction)
