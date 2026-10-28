@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { normalizeExtraction, createExtractor } from '../src/llm/extractor.js'
+import { normalizeExtraction, createExtractor } from '../../src/llm/extractor.js'
 
 test('normalizes a complete extraction and converts amount to cents', () => {
   const result = normalizeExtraction({

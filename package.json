@@ -13,7 +13,9 @@
     "dev:web": "npm run dev -w @pitayapay/web",
     "build": "npm run build -w @pitayapay/web",
     "start": "npm start -w @pitayapay/server",
-    "test": "npm test -w @pitayapay/server"
+    "test": "npm test -w @pitayapay/server",
+    "test:unit": "npm run test:unit -w @pitayapay/server",
+    "test:coverage": "npm run test:coverage -w @pitayapay/server"
   },
   "devDependencies": {
     "prisma": "^6.12.0"

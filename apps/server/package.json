@@ -7,7 +7,11 @@
   "scripts": {
     "dev": "node --env-file-if-exists=../../.env --watch src/index.js",
     "start": "node --env-file-if-exists=../../.env src/index.js",
-    "test": "node --test"
+    "test:db": "DATABASE_URL=file:./test.db prisma db push --schema ../../prisma/schema.prisma --force-reset --skip-generate",
+    "test": "npm run test:db && DATABASE_URL=file:./test.db node --test --test-concurrency=1 \"test/**/*.test.js\"",
+    "test:unit": "node --test \"test/unit/**/*.test.js\"",
+    "test:watch": "node --test --watch \"test/unit/**/*.test.js\"",
+    "test:coverage": "npm run test:db && DATABASE_URL=file:./test.db node --test --test-concurrency=1 --experimental-test-coverage --test-coverage-include=\"src/**\" --test-coverage-exclude=\"src/index.js\" --test-coverage-lines=80 --test-coverage-branches=70 --test-coverage-functions=80 \"test/**/*.test.js\""
   },
   "dependencies": {
     "@fastify/jwt": "^10.2.2",
