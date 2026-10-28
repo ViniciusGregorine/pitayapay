@@ -88,6 +88,8 @@ Se algo é difícil de testar, é sinal de design: prefira injetar a dependênci
 
 ## Checklist antes de concluir qualquer tarefa
 
+O hook `Stop` em `.claude/settings.json` (`.claude/hooks/unit-tests-on-stop.mjs`) roda `npm run test:unit` sempre que o Claude encerra uma resposta e bloqueia o encerramento se algo falhar. Ele não substitui `npm test` nem `npm run test:coverage`: rode os dois antes de dar a tarefa por concluída.
+
 - [ ] Cada comportamento novo/alterado tem teste que foi visto falhando antes.
 - [ ] `npm test` verde.
 - [ ] `npm run test:coverage` verde (ou o usuário foi informado do motivo).
