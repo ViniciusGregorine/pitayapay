@@ -15,8 +15,8 @@ beforeEach(async () => {
 afterEach(() => app.close())
 after(disconnectDatabase)
 
-function listAs(token) {
-  return app.inject({ method: 'GET', url: '/api/transactions', headers: token ? { authorization: `Bearer ${token}` } : {} })
+function listAs(token, query) {
+  return app.inject({ method: 'GET', url: '/api/transactions', query, headers: token ? { authorization: `Bearer ${token}` } : {} })
 }
 
 test('lists the user transactions with ISO dates and income/expense totals', async () => {
@@ -34,6 +34,36 @@ test('lists the user transactions with ISO dates and income/expense totals', asy
   ])
   assert.deepEqual(body.totals, { incomeCents: 120000, expenseCents: 26000 })
 })
+
+test('filters by period, type and category and computes the totals over the filtered list', async () => {
+  const fuel = await seedTransaction(ana.id, { type: 'expense', amountCents: 25010, date: new Date('2026-10-31'), category: 'Combustível' })
+  await seedTransaction(ana.id, { type: 'expense', amountCents: 990, date: new Date('2026-11-01'), category: 'Combustível' })
+  await seedTransaction(ana.id, { type: 'expense', amountCents: 500, date: new Date('2026-10-15'), category: 'Outros' })
+  await seedTransaction(ana.id, { type: 'income', amountCents: 120000, date: new Date('2026-10-02'), category: 'Combustível' })
+
+  const response = await listAs(await loginAs(app, ana.id), { from: '2026-10-01', to: '2026-10-31', type: 'expense', category: 'Combustível' })
+
+  assert.equal(response.statusCode, 200)
+  const body = response.json()
+  assert.deepEqual(body.transactions.map((t) => t.id), [fuel.id])
+  assert.deepEqual(body.totals, { incomeCents: 0, expenseCents: 25010 })
+})
+
+const INVALID_FILTERS = {
+  'an unknown type': { type: 'transfer' },
+  'a category outside the list': { category: 'Lazer' },
+  'a start date that does not exist': { from: '2026-02-30' },
+  'an end date in another format': { to: '31/10/2026' },
+}
+
+for (const [name, query] of Object.entries(INVALID_FILTERS)) {
+  test(`rejects a list filtered by ${name}`, async () => {
+    const response = await listAs(await loginAs(app, ana.id), query)
+
+    assert.equal(response.statusCode, 400)
+    assert.match(response.json().error, /Dados inválidos/)
+  })
+}
 
 test('never shows transactions of another user', async () => {
   const bia = await findOrCreateUser('2', 'Bia')

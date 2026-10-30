@@ -21,6 +21,16 @@ const transactionBodySchema = {
   },
 }
 
+const listQuerySchema = {
+  type: 'object',
+  properties: {
+    from: { type: 'string', format: 'date' },
+    to: { type: 'string', format: 'date' },
+    type: { enum: TRANSACTION_TYPES },
+    category: { enum: CATEGORIES },
+  },
+}
+
 function sumByType(transactions, type) {
   return transactions.filter((t) => t.type === type).reduce((sum, t) => sum + t.amountCents, 0)
 }
@@ -30,8 +40,8 @@ function toResponse({ id, type, amountCents, date, category, description }) {
 }
 
 export async function transactionRoutes(app) {
-  app.get('/api/transactions', { onRequest: [app.authenticate] }, async (request) => {
-    const transactions = await listTransactions(request.user.sub)
+  app.get('/api/transactions', { onRequest: [app.authenticate], schema: { querystring: listQuerySchema } }, async (request) => {
+    const transactions = await listTransactions(request.user.sub, request.query)
     return {
       transactions: transactions.map(toResponse),
       totals: {

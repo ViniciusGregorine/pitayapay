@@ -19,9 +19,12 @@ export function confirmDraftAsTransaction(draft) {
   })
 }
 
-export function listTransactions(userId) {
+const toDate = (isoDate) => (isoDate ? new Date(isoDate) : undefined)
+
+// Prisma ignores filters left undefined. Dates are stored at UTC midnight, so `lte` includes the last day.
+export function listTransactions(userId, { from, to, type, category } = {}) {
   return prisma.transaction.findMany({
-    where: { userId },
+    where: { userId, type, category, date: { gte: toDate(from), lte: toDate(to) } },
     orderBy: [{ date: 'desc' }, { id: 'desc' }],
   })
 }

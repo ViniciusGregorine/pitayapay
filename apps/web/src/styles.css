@@ -125,3 +125,19 @@ tr.editing {
   flex-basis: 100%;
   margin: 0;
 }
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.filters input,
+.filters select {
+  padding: 0.35rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font: inherit;
+}

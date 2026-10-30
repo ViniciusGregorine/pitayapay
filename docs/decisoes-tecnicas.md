@@ -23,12 +23,12 @@ Legenda: ✅ implementado · 🟡 parcial/simplificado · 🔁 substituído por 
 | RF12 — Só vale após confirmação | ✅ | Só o botão ✅ Confirmar grava em `Transaction`; antes disso é um `Draft`. Confirmar e salvar acontecem na mesma transação de banco. |
 | RF13 — Aprender com correções | ⏸️ | O texto original e as correções ficam em `rawText`, mas não são usados para treinar/ajustar classificações. |
 | RF14 — Listagem de lançamentos | 🟡 | Painel web com Data, Tipo, Valor, Categoria e Descrição + totais de Receitas, Despesas e Saldo. Sem coluna Atividade. |
-| RF15 — Filtros | ⏸️ | — |
+| RF15 — Filtros | 🟡 | Filtros no painel por Período (de/até), Receita/Despesa e Categoria; os totais seguem o filtro. `GET /api/transactions?from=&to=&type=&category=`. Sem filtro por Atividade, que depende do RF08. |
 | RF16 — Alterar lançamento salvo | ✅ | Botão **Editar** em cada linha do painel abre um formulário na própria linha (tipo, valor, data, categoria, descrição). `PUT /api/transactions/:id`. |
 | RF17 — Excluir lançamento | ✅ | Botão **Excluir** em cada linha, com confirmação. `DELETE /api/transactions/:id`. A exclusão é definitiva. |
 | RF18–RF22 — Chat financeiro com IA | ⏸️ | — |
 
-**Resumo:** os requisitos M1–M5 do MVP estão cobertos (RF04, RF06, RF07, RF09–RF12, RF14, em versão simplificada). RF01/RF02 foram substituídos pelo login via Telegram. RF16 e RF17 foram adicionados depois do MVP, pelo painel web. Os demais ficam para depois do MVP.
+**Resumo:** os requisitos M1–M5 do MVP estão cobertos (RF04, RF06, RF07, RF09–RF12, RF14, em versão simplificada). RF01/RF02 foram substituídos pelo login via Telegram. RF15 (parcial), RF16 e RF17 foram adicionados depois do MVP, pelo painel web. Os demais ficam para depois do MVP.
 
 ## 2. Stack
 
@@ -98,3 +98,10 @@ O Prisma 7+ exige driver adapters e `prisma.config.ts`, o que adiciona complexid
 - Comandos desconhecidos (ex.: `/ajuda`) são tratados como texto e enviados à IA.
 - Não há logout explícito no painel.
 - Logs `[debug]` em `bot/index.js` e `bot/handlers.js` e o script `apps/server/q.mjs` foram adicionados para depuração. Avaliar se devem ser removidos antes do deploy.
+
+### Filtros no painel (RF15)
+- **Filtros na query string do `GET /api/transactions`** (`from`, `to`, `type`, `category`), todos opcionais e combináveis. O filtro é feito no banco, e os totais de Receitas/Despesas/Saldo são calculados sobre a lista filtrada.
+- **Período inclusivo:** `from` e `to` são `AAAA-MM-DD` e incluem os dois dias. Como a data é guardada à meia-noite UTC, basta `gte`/`lte` sem conversão de fuso.
+- **Mesma validação da edição:** tipo e categoria só das listas de `packages/shared`, datas reais; valor inválido → `400 Dados inválidos`. Parâmetros desconhecidos são descartados, como os campos extras do `PUT`.
+- **Sem filtro por Atividade:** o lançamento ainda não tem atividade (RF08 fora do escopo). Entra quando o RF08 for implementado.
+- No front, os filtros recarregam a lista a cada mudança; uma resposta que chega depois de o filtro mudar de novo é descartada.

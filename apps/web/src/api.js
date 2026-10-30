@@ -38,8 +38,10 @@ export function hasSession() {
   return Boolean(sessionStorage.getItem(SESSION_KEY))
 }
 
-export function fetchTransactions() {
-  return authorizedRequest('/api/transactions')
+// Empty filters are left out, so they mean "all".
+export function fetchTransactions(filters = {}) {
+  const query = new URLSearchParams(Object.entries(filters).filter(([, value]) => value))
+  return authorizedRequest(`/api/transactions?${query}`)
 }
 
 export function updateTransaction(id, fields) {

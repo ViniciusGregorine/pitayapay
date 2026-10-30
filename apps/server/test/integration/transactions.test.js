@@ -54,6 +54,45 @@ test('lists only the user transactions, newest date first and then newest id', a
   assert.deepEqual(transactions.map((t) => t.id), [sameDaySecond.id, sameDayFirst.id, old.id])
 })
 
+test('filters by period including both ends', async () => {
+  await seedTransaction(ana.id, { date: new Date('2026-09-30') })
+  const first = await seedTransaction(ana.id, { date: new Date('2026-10-01') })
+  const last = await seedTransaction(ana.id, { date: new Date('2026-10-31') })
+  await seedTransaction(ana.id, { date: new Date('2026-11-01') })
+
+  const transactions = await listTransactions(ana.id, { from: '2026-10-01', to: '2026-10-31' })
+
+  assert.deepEqual(transactions.map((t) => t.id), [last.id, first.id])
+})
+
+test('filters by an open-ended period', async () => {
+  const old = await seedTransaction(ana.id, { date: new Date('2026-09-30') })
+  const recent = await seedTransaction(ana.id, { date: new Date('2026-10-01') })
+
+  const since = await listTransactions(ana.id, { from: '2026-10-01' })
+  const until = await listTransactions(ana.id, { to: '2026-09-30' })
+
+  assert.deepEqual(since.map((t) => t.id), [recent.id])
+  assert.deepEqual(until.map((t) => t.id), [old.id])
+})
+
+test('filters by type and category together', async () => {
+  const fuel = await seedTransaction(ana.id, { type: 'expense', category: 'Combustível' })
+  await seedTransaction(ana.id, { type: 'expense', category: 'Outros' })
+  await seedTransaction(ana.id, { type: 'income', category: 'Combustível' })
+
+  const transactions = await listTransactions(ana.id, { type: 'expense', category: 'Combustível' })
+
+  assert.deepEqual(transactions.map((t) => t.id), [fuel.id])
+})
+
+test('filters never show transactions of another user', async () => {
+  const bia = await findOrCreateUser('2', 'Bia')
+  await seedTransaction(bia.id, { type: 'expense' })
+
+  assert.deepEqual(await listTransactions(ana.id, { type: 'expense' }), [])
+})
+
 const CHANGES = { type: 'income', amountCents: 50000, date: '2026-10-05', category: 'Vendas / Receitas', description: 'Milho' }
 
 test('updates the editable fields of a user transaction and keeps the original text', async () => {

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { TYPE_LABELS, formatCents } from '@pitayapay/shared'
 import { loginFromUrl, hasSession, fetchTransactions, updateTransaction, deleteTransaction } from './api.js'
 import EditRow from './EditRow.jsx'
+import Filters, { NO_FILTERS } from './Filters.jsx'
 
 const NO_SESSION_MESSAGE = 'Envie /painel para o bot no Telegram para receber seu link de acesso.'
 const CONFIRM_DELETE_MESSAGE = 'Excluir este lançamento? Essa ação não pode ser desfeita.'
@@ -38,9 +39,11 @@ function TransactionRow({ transaction: t, onEdit, onDelete }) {
   )
 }
 
-function TransactionTable({ transactions, editingId, onEdit, onCancelEdit, onSave, onDelete }) {
+function TransactionTable({ transactions, filtered, editingId, onEdit, onCancelEdit, onSave, onDelete }) {
   if (transactions.length === 0) {
-    return <p>Nenhum lançamento ainda. Mande uma mensagem para o bot no Telegram!</p>
+    return filtered
+      ? <p>Nenhum lançamento encontrado com esses filtros.</p>
+      : <p>Nenhum lançamento ainda. Mande uma mensagem para o bot no Telegram!</p>
   }
   return (
     <table>
@@ -60,30 +63,42 @@ function TransactionTable({ transactions, editingId, onEdit, onCancelEdit, onSav
   )
 }
 
-async function loadPanel() {
+async function startSession() {
   await loginFromUrl()
   if (!hasSession()) throw new Error(NO_SESSION_MESSAGE)
-  return fetchTransactions()
 }
 
-// The magic link is single-use, so the load must not run twice (e.g. StrictMode effects).
-let panelRequest
-function loadPanelOnce() {
-  panelRequest ??= loadPanel()
-  return panelRequest
+// The magic link is single-use, so the login must not run twice (e.g. StrictMode effects).
+let sessionRequest
+function startSessionOnce() {
+  sessionRequest ??= startSession()
+  return sessionRequest
 }
 
 export default function App() {
   const [data, setData] = useState(null)
   const [error, setError] = useState(null)
   const [editingId, setEditingId] = useState(null)
+  const [filters, setFilters] = useState(NO_FILTERS)
 
+  // A response for filters that already changed again is ignored, so the list never goes back to old filters.
   useEffect(() => {
-    loadPanelOnce().then(setData).catch((err) => setError(err.message))
-  }, [])
+    let stale = false
+    startSessionOnce()
+      .then(() => fetchTransactions(filters))
+      .then((result) => {
+        if (stale) return
+        setData(result)
+        setError(null)
+      })
+      .catch((err) => !stale && setError(err.message))
+    return () => {
+      stale = true
+    }
+  }, [filters])
 
   async function reload() {
-    setData(await fetchTransactions())
+    setData(await fetchTransactions(filters))
   }
 
   // Errors here are shown inside the edit row, which stays open so nothing typed is lost.
@@ -111,9 +126,11 @@ export default function App() {
       {!error && !data && <p>Carregando…</p>}
       {data && (
         <>
+          <Filters filters={filters} onChange={setFilters} />
           <Totals totals={data.totals} />
           <TransactionTable
             transactions={data.transactions}
+            filtered={Object.values(filters).some(Boolean)}
             editingId={editingId}
             onEdit={setEditingId}
             onCancelEdit={() => setEditingId(null)}

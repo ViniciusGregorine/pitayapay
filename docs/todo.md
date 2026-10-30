@@ -1,5 +1,5 @@
 - [x] Adicionar heavy testes automatizados
 - [x] Adicionar feature de editar na tela
-- [ ] Adiconar feature de filtrar registros
+- [x] Adiconar feature de filtrar registros (sem Atividade, depende do RF08)
 - [ ] Adicionar features de enviar audio
 - [ ] Adicionar features de chat 
