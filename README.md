@@ -17,7 +17,7 @@ Requer Node.js 22+.
 
 ```bash
 npm install
-cp .env.example .env   # preencha TELEGRAM_TOKEN, LLM_API_KEY, LLM_MODEL, JWT_SECRET
+cp .env.example .env   # preencha TELEGRAM_TOKEN, LLM_API_KEY, LLM_MODEL, JWT_SECRET, TRANSCRIPTION_API_KEY
 npm run db:generate
 npm run db:push        # cria prisma/dev.db
 npm run build          # gera apps/web/dist, servido pelo servidor
@@ -26,7 +26,7 @@ npm start              # API + bot em http://localhost:3000
 
 Desenvolvimento do front com hot reload: `npm run dev:server` e `npm run dev:web` (o Vite faz proxy de `/api` para a porta 3000).
 
-No Telegram: envie `/start`, depois uma movimentação ("gastei 250 de diesel ontem"), e `/painel` para receber o link do painel.
+No Telegram: envie `/start`, depois uma movimentação ("gastei 250 de diesel ontem") por texto ou áudio, e `/painel` para receber o link do painel.
 
 ## Testes
 
@@ -41,3 +41,4 @@ O firewall do devcontainer libera apenas `registry.npmjs.org` e `api.anthropic.c
 - `binaries.prisma.sh` — engines do Prisma (`prisma generate` / `db push`)
 - `api.telegram.org` — bot
 - o host de `LLM_BASE_URL` (ex.: `routellm.abacus.ai`)
+- o host de `TRANSCRIPTION_BASE_URL` (ex.: `api.groq.com`)

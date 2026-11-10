@@ -13,11 +13,15 @@ Me mande uma mensagem descrevendo uma movimentação, por exemplo:
 "Gastei 250 reais de diesel ontem"
 "Vendi 30 caixas de tomate por 1.200"
 
+Também pode mandar um áudio 🎤 falando a mesma coisa.
+
 Eu organizo o lançamento e você confirma antes de salvar.
 Use /painel para ver seus lançamentos na web.`
 
-export const ASK_CORRECTION = '✏️ Me diga o que corrigir, em texto livre.'
+export const ASK_CORRECTION = '✏️ Me diga o que corrigir, por texto ou áudio.'
 export const LLM_ERROR = '😕 Não consegui interpretar sua mensagem agora. Tente novamente em instantes.'
+export const VOICE_ERROR = '😕 Não consegui ouvir seu áudio agora. Tente novamente em instantes ou escreva a mensagem.'
+export const VOICE_NOT_UNDERSTOOD = '🎤 Não entendi o áudio. Pode repetir ou escrever a mensagem?'
 export const GENERIC_ERROR = '😕 Algo deu errado do meu lado. Tente novamente em instantes.'
 export const DRAFT_NOT_FOUND = 'Este lançamento já foi finalizado.'
 export const DRAFT_INCOMPLETE = 'Ainda faltam informações neste lançamento.'
@@ -67,4 +71,12 @@ export function cancelledMessage() {
 
 export function panelLink(url) {
   return `Seu link de acesso ao painel (válido por 15 minutos, uso único):\n${url}`
+}
+
+export function heardVoice(text) {
+  return `🎤 Entendi: "${text}"`
+}
+
+export function voiceTooLong(maxSeconds) {
+  return `🎤 Esse áudio é muito longo. Mande um áudio de até ${maxSeconds} segundos ou escreva a mensagem.`
 }

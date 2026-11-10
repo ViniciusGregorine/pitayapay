@@ -1,4 +1,4 @@
-import { APP_TIMEZONE } from '../config.js'
+import { APP_TIMEZONE, MAX_VOICE_SECONDS } from '../config.js'
 import { findOrCreateUser } from '../db/users.js'
 import { createDraft, findPendingDraft, findPendingDraftById, updateDraft, cancelDraft } from '../db/drafts.js'
 import { confirmDraftAsTransaction } from '../db/transactions.js'
@@ -22,7 +22,7 @@ async function replyWithDraft(ctx, draft) {
   return ctx.reply(msg.confirmPrompt(parsed), { reply_markup: msg.confirmKeyboard(draft.id) })
 }
 
-export function createHandlers({ extractTransaction, publicUrl }) {
+export function createHandlers({ extractTransaction, transcribe, downloadFile, publicUrl }) {
   async function onStart(ctx) {
     await currentUser(ctx)
     await ctx.reply(msg.WELCOME)
@@ -35,8 +35,7 @@ export function createHandlers({ extractTransaction, publicUrl }) {
   }
 
   // A pending draft absorbs the next message as a correction or missing info (M3).
-  async function onText(ctx) {
-    const text = ctx.message.text
+  async function registerText(ctx, text) {
     const user = await currentUser(ctx)
     const pending = await findPendingDraft(user.id)
 
@@ -52,6 +51,29 @@ export function createHandlers({ extractTransaction, publicUrl }) {
       ? await updateDraft(pending.id, `${pending.rawText}\n${text}`, parsed)
       : await createDraft(user.id, text, parsed)
     await replyWithDraft(ctx, draft)
+  }
+
+  function onText(ctx) {
+    return registerText(ctx, ctx.message.text)
+  }
+
+  // Once transcribed, a voice message follows exactly the text flow (RF05).
+  async function onVoice(ctx) {
+    if (ctx.message.voice.duration > MAX_VOICE_SECONDS) return ctx.reply(msg.voiceTooLong(MAX_VOICE_SECONDS))
+
+    let text
+    try {
+      const file = await ctx.getFile()
+      text = await transcribe(await downloadFile(file.file_path))
+    } catch (error) {
+      console.error('Voice transcription failed:', error)
+      return ctx.reply(msg.VOICE_ERROR)
+    }
+    if (!text) return ctx.reply(msg.VOICE_NOT_UNDERSTOOD)
+
+    // Echoing the transcript lets the user catch a misheard amount before confirming.
+    await ctx.reply(msg.heardVoice(text))
+    await registerText(ctx, text)
   }
 
   async function onDraftAction(ctx) {
@@ -77,5 +99,5 @@ export function createHandlers({ extractTransaction, publicUrl }) {
     await ctx.answerCallbackQuery()
   }
 
-  return { onStart, onPanel, onText, onDraftAction }
+  return { onStart, onPanel, onText, onVoice, onDraftAction }
 }

@@ -59,3 +59,11 @@ test('panel link message contains the url and its validity', () => {
   assert.match(text, /15 minutos, uso único/)
   assert.match(text, /\nhttp:\/\/x\/\?token=abc$/)
 })
+
+test('echoes what was heard in a voice message so the user can spot transcription mistakes', () => {
+  assert.equal(msg.heardVoice('gastei 250 de diesel'), '🎤 Entendi: "gastei 250 de diesel"')
+})
+
+test('refuses long voice messages stating the limit and offering text instead', () => {
+  assert.equal(msg.voiceTooLong(60), '🎤 Esse áudio é muito longo. Mande um áudio de até 60 segundos ou escreva a mensagem.')
+})

@@ -4,17 +4,18 @@ import { prisma } from '../../src/db/client.js'
 import { createBot } from '../../src/bot/index.js'
 import * as msg from '../../src/bot/messages.js'
 import { resetDatabase, disconnectDatabase } from '../helpers/db.js'
-import { captureTelegramApi, deliver, textUpdate, buttonUpdate } from '../helpers/telegram.js'
+import { captureTelegramApi, deliver, textUpdate, voiceUpdate, buttonUpdate, VOICE_FILE_PATH } from '../helpers/telegram.js'
 
 const COMPLETE = { type: 'expense', amountCents: 25000, date: '2026-10-02', category: 'Combustível', description: 'Diesel', missing: [] }
+const HEARD = 'gastei 250 de diesel'
 
 // Silences the temporary [debug] logs of the bot.
 before(() => mock.method(console, 'debug', () => {}))
 beforeEach(resetDatabase)
 after(disconnectDatabase)
 
-function testBot(options) {
-  const bot = createBot({ token: 'test-token', extractTransaction: async () => COMPLETE, publicUrl: 'http://test' })
+function testBot(options, transcribe = async () => HEARD) {
+  const bot = createBot({ token: 'test-token', extractTransaction: async () => COMPLETE, transcribe, publicUrl: 'http://test' })
   const calls = captureTelegramApi(bot, options)
   return { bot, calls }
 }
@@ -49,6 +50,19 @@ test('routes free text to the extraction and the draft buttons to their actions'
   assert.deepEqual(sentTexts(calls), [msg.confirmPrompt(COMPLETE)])
   assert.equal(calls.find((c) => c.method === 'editMessageText').payload.text, msg.savedMessage(COMPLETE))
   assert.equal(await prisma.transaction.count(), 1)
+})
+
+test('routes voice messages to the transcription of the file downloaded with the bot token', async (t) => {
+  const download = t.mock.method(globalThis, 'fetch', async () => new Response(new Uint8Array([1, 2, 3])))
+  const transcribe = mock.fn(async () => HEARD)
+  const { bot, calls } = testBot(undefined, transcribe)
+
+  await deliver(bot, voiceUpdate(5))
+
+  assert.deepEqual(calls.find((c) => c.method === 'getFile').payload, { file_id: 'voice-file' })
+  assert.deepEqual(download.mock.calls[0].arguments, [`https://api.telegram.org/file/bottest-token/${VOICE_FILE_PATH}`])
+  assert.deepEqual(transcribe.mock.calls[0].arguments, [new Uint8Array([1, 2, 3])])
+  assert.deepEqual(sentTexts(calls), [msg.heardVoice(HEARD), msg.confirmPrompt(COMPLETE)])
 })
 
 test('ignores buttons with unknown actions', async () => {

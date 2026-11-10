@@ -1,10 +1,11 @@
 import { Bot } from 'grammy'
 import { createHandlers } from './handlers.js'
+import { createFileDownloader } from './telegramFiles.js'
 import { GENERIC_ERROR } from './messages.js'
 
-export function createBot({ token, extractTransaction, publicUrl }) {
+export function createBot({ token, extractTransaction, transcribe, publicUrl }) {
   const bot = new Bot(token)
-  const handlers = createHandlers({ extractTransaction, publicUrl })
+  const handlers = createHandlers({ extractTransaction, transcribe, downloadFile: createFileDownloader(token), publicUrl })
 
   bot.use(async (ctx, next) => {
     console.debug('[debug] update', ctx.update.update_id, Object.keys(ctx.update))
@@ -15,6 +16,7 @@ export function createBot({ token, extractTransaction, publicUrl }) {
   bot.command('painel', handlers.onPanel)
   bot.callbackQuery(/^(confirm|correct|cancel):(\d+)$/, handlers.onDraftAction)
   bot.on('message:text', handlers.onText)
+  bot.on('message:voice', handlers.onVoice)
 
   bot.catch(async ({ ctx, error }) => {
     console.error(`Bot error on update ${ctx.update.update_id}:`, error)

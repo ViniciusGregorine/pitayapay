@@ -5,18 +5,27 @@ import { createHandlers } from '../../src/bot/handlers.js'
 import { consumeLoginToken } from '../../src/db/loginTokens.js'
 import * as msg from '../../src/bot/messages.js'
 import { resetDatabase, disconnectDatabase } from '../helpers/db.js'
-import { fakeCtx } from '../helpers/telegram.js'
+import { MAX_VOICE_SECONDS } from '../../src/config.js'
+import { fakeCtx, VOICE_FILE_PATH } from '../helpers/telegram.js'
 
 const COMPLETE = { type: 'expense', amountCents: 25000, date: '2026-10-02', category: 'Combustível', description: 'Diesel', missing: [] }
 const MISSING_AMOUNT = { ...COMPLETE, amountCents: null, missing: ['amountCents'] }
+const AUDIO = new Uint8Array([79, 103, 103, 83])
+const HEARD = 'gastei 250 de diesel'
 
 // Silences the temporary [debug] logs of the bot handlers.
 before(() => mock.method(console, 'debug', () => {}))
 beforeEach(resetDatabase)
 after(disconnectDatabase)
 
-function handlersWith(extractTransaction = async () => COMPLETE) {
-  return createHandlers({ extractTransaction, publicUrl: 'http://test' })
+function handlersWith(extractTransaction = async () => COMPLETE, voice = {}) {
+  return createHandlers({
+    extractTransaction,
+    transcribe: async () => HEARD,
+    downloadFile: async () => AUDIO,
+    publicUrl: 'http://test',
+    ...voice,
+  })
 }
 
 function firstReply(ctx) {
@@ -110,6 +119,77 @@ test('replies with a friendly message and saves nothing when the LLM fails', asy
   assert.equal(logged.mock.callCount(), 1)
   assert.equal(await prisma.draft.count(), 0)
 })
+
+test('a voice message is transcribed, echoed back and becomes a draft just like text', async () => {
+  const downloadFile = mock.fn(async () => AUDIO)
+  const transcribe = mock.fn(async () => HEARD)
+  const extract = mock.fn(async () => COMPLETE)
+  const ctx = fakeCtx({ voice: { duration: MAX_VOICE_SECONDS } })
+
+  await handlersWith(extract, { downloadFile, transcribe }).onVoice(ctx)
+
+  const draft = await prisma.draft.findFirstOrThrow()
+  assert.deepEqual(downloadFile.mock.calls[0].arguments, [VOICE_FILE_PATH])
+  assert.deepEqual(transcribe.mock.calls[0].arguments, [AUDIO])
+  assert.equal(extract.mock.calls[0].arguments[0], HEARD)
+  assert.equal(draft.rawText, HEARD)
+  assert.deepEqual(ctx.reply.mock.calls.map((call) => call.arguments), [
+    [msg.heardVoice(HEARD)],
+    [msg.confirmPrompt(COMPLETE), { reply_markup: msg.confirmKeyboard(draft.id) }],
+  ])
+})
+
+test('a voice message while a draft is pending corrects that draft', async () => {
+  const extract = mock.fn(async () => MISSING_AMOUNT)
+  const handlers = handlersWith(extract, { transcribe: async () => 'foi 250' })
+  await handlers.onText(fakeCtx({ text: 'gastei de diesel' }))
+  extract.mock.mockImplementation(async () => COMPLETE)
+
+  await handlers.onVoice(fakeCtx({ voice: { duration: 3 } }))
+
+  assert.deepEqual(extract.mock.calls[1].arguments[2], MISSING_AMOUNT)
+  const drafts = await prisma.draft.findMany()
+  assert.equal(drafts.length, 1)
+  assert.equal(drafts[0].rawText, 'gastei de diesel\nfoi 250')
+})
+
+test('a voice message over the length limit is refused without downloading it', async () => {
+  const downloadFile = mock.fn(async () => AUDIO)
+  const ctx = fakeCtx({ voice: { duration: MAX_VOICE_SECONDS + 1 } })
+
+  await handlersWith(undefined, { downloadFile }).onVoice(ctx)
+
+  assert.deepEqual(firstReply(ctx), [msg.voiceTooLong(MAX_VOICE_SECONDS)])
+  assert.equal(downloadFile.mock.callCount(), 0)
+  assert.equal(await prisma.draft.count(), 0)
+})
+
+test('a voice message with no recognizable speech asks to repeat and skips the LLM', async () => {
+  const extract = mock.fn(async () => COMPLETE)
+  const ctx = fakeCtx({ voice: { duration: 2 } })
+
+  await handlersWith(extract, { transcribe: async () => '' }).onVoice(ctx)
+
+  assert.deepEqual(firstReply(ctx), [msg.VOICE_NOT_UNDERSTOOD])
+  assert.equal(extract.mock.callCount(), 0)
+  assert.equal(await prisma.draft.count(), 0)
+})
+
+for (const [step, voice] of [
+  ['download', { downloadFile: async () => { throw new Error('boom') } }],
+  ['transcription', { transcribe: async () => { throw new Error('boom') } }],
+]) {
+  test(`replies with a friendly message, logs the cause and saves nothing when the ${step} fails`, async (t) => {
+    const logged = t.mock.method(console, 'error', () => {})
+    const ctx = fakeCtx({ voice: { duration: 2 } })
+
+    await handlersWith(undefined, voice).onVoice(ctx)
+
+    assert.deepEqual(firstReply(ctx), [msg.VOICE_ERROR])
+    assert.deepEqual(logged.mock.calls[0].arguments.map(String), ['Voice transcription failed:', 'Error: boom'])
+    assert.equal(await prisma.draft.count(), 0)
+  })
+}
 
 test('confirm saves the transaction and replaces the summary with the saved message', async () => {
   const handlers = handlersWith()

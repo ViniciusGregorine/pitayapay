@@ -1,6 +1,7 @@
 import { loadConfig } from './config.js'
 import { createLLMClient } from './llm/client.js'
 import { createExtractor } from './llm/extractor.js'
+import { createOpenAICompatibleTranscriber } from './llm/transcribers/openaiCompatible.js'
 import { createBot } from './bot/index.js'
 import { buildServer } from './server.js'
 import { log } from 'node:console'
@@ -8,7 +9,8 @@ import { log } from 'node:console'
 const config = loadConfig()
 
 const extractTransaction = createExtractor(createLLMClient(config.llm))
-const bot = createBot({ token: config.telegramToken, extractTransaction, publicUrl: config.publicUrl })
+const transcribe = createOpenAICompatibleTranscriber(config.transcription)
+const bot = createBot({ token: config.telegramToken, extractTransaction, transcribe, publicUrl: config.publicUrl })
 const app = await buildServer({ jwtSecret: config.jwtSecret })
 
 await app.listen({ port: config.port, host: '0.0.0.0' })

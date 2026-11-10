@@ -10,6 +10,8 @@ ALLOWED_DOMAINS=(
   binaries.prisma.sh
   api.telegram.org
   routellm.abacus.ai
+  groq.com
+  api.groq.com
 )
 
 if [[ "$(id -u)" != "0" ]]; then

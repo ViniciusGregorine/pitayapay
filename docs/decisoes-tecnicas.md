@@ -13,7 +13,7 @@ Legenda: ✅ implementado · 🟡 parcial/simplificado · 🔁 substituído por 
 | RF02 — Login/logout | 🔁 🟡 | Login por magic link: `/painel` gera um link de uso único válido por 15 min, trocado por um JWT de 1 h. Não há botão de logout: a sessão expira em 1 h e fica em `sessionStorage` (some ao fechar a aba). |
 | RF03 — Perfil/contexto da atividade | ⏸️ | — |
 | RF04 — Registro por texto livre | ✅ | Qualquer mensagem de texto ao bot vira um rascunho de lançamento (despesa ou receita). |
-| RF05 — Registro por áudio | ⏸️ | — |
+| RF05 — Registro por áudio | ✅ | Mensagem de voz do Telegram (até 60 s) é transcrita (Groq Whisper) e segue o mesmo fluxo do texto: rascunho, ✅/✏️/❌, correção também por áudio. |
 | RF06 — Tipo do lançamento | 🟡 | Apenas Receita e Despesa (como o próprio RF permite no MVP). |
 | RF07 — Categoria e subcategoria | 🟡 | 1 categoria de uma lista fixa de 10 (`packages/shared`). Sem subcategoria. Categoria desconhecida vira "Outros". |
 | RF08 — Identificar atividade (soja, milho…) | ⏸️ | — |
@@ -28,7 +28,7 @@ Legenda: ✅ implementado · 🟡 parcial/simplificado · 🔁 substituído por 
 | RF17 — Excluir lançamento | ✅ | Botão **Excluir** em cada linha, com confirmação. `DELETE /api/transactions/:id`. A exclusão é definitiva. |
 | RF18–RF22 — Chat financeiro com IA | ⏸️ | — |
 
-**Resumo:** os requisitos M1–M5 do MVP estão cobertos (RF04, RF06, RF07, RF09–RF12, RF14, em versão simplificada). RF01/RF02 foram substituídos pelo login via Telegram. RF15 (parcial), RF16 e RF17 foram adicionados depois do MVP, pelo painel web. Os demais ficam para depois do MVP.
+**Resumo:** os requisitos M1–M5 do MVP estão cobertos (RF04, RF06, RF07, RF09–RF12, RF14, em versão simplificada). RF01/RF02 foram substituídos pelo login via Telegram. RF15 (parcial), RF16 e RF17 foram adicionados depois do MVP, pelo painel web, e o RF05 pelo bot. Os demais ficam para depois do MVP.
 
 ## 2. Stack
 
@@ -41,6 +41,7 @@ Legenda: ✅ implementado · 🟡 parcial/simplificado · 🔁 substituído por 
 | Front | Vite + React, 1 página | Sem SSR, sem roteador, sem biblioteca de estado. |
 | Banco | SQLite + Prisma **6.19.x** | Zero infraestrutura para < 10 usuários. |
 | LLM | API compatível com OpenAI (RouteLLM da Abacus) em JSON mode | Provedor trocável por variável de ambiente. |
+| Transcrição de áudio | API `/audio/transcriptions` compatível com OpenAI; hoje Groq `whisper-large-v3-turbo` | A mais barata (US$ 0,04/h; plano gratuito cobre o uso previsto) e trocável pelo `.env`. O RouteLLM não tem essa rota. |
 | Testes | `node:test` nativo, TDD, cobertura nativa do Node (portão 80% linhas / 70% branches / 80% funções) | Nenhuma dependência de teste. Integração com SQLite real (`prisma/test.db`); LLM e Telegram sempre fakes. Ver `.claude/skills/tdd-pitayapay/`. |
 
 ## 3. Decisões e justificativas
@@ -49,7 +50,7 @@ Legenda: ✅ implementado · 🟡 parcial/simplificado · 🔁 substituído por 
 - **Um processo só** (`apps/server`) roda o bot, a API e os arquivos estáticos do painel. Menos coisa para subir e monitorar.
 - **Camadas separadas** em `apps/server/src`: `bot/` (conversa), `llm/` (prompt e validação), `db/` (único lugar que usa o Prisma), `routes/` (HTTP). O bot nunca acessa o Prisma diretamente.
 - **Dependências injetadas onde importa:** o bot recebe `extractTransaction` pronto, e o extrator recebe `callLLM`. Isso facilita testar e trocar o provedor de LLM.
-- **Fail fast:** se faltar uma variável obrigatória (`TELEGRAM_TOKEN`, `LLM_API_KEY`, `LLM_BASE_URL`, `LLM_MODEL`, `JWT_SECRET`, `DATABASE_URL`), o servidor não sobe.
+- **Fail fast:** se faltar uma variável obrigatória (`TELEGRAM_TOKEN`, `LLM_API_KEY`, `LLM_BASE_URL`, `LLM_MODEL`, `JWT_SECRET`, `DATABASE_URL`, `TRANSCRIPTION_API_KEY`, `TRANSCRIPTION_BASE_URL`, `TRANSCRIPTION_MODEL`), o servidor não sobe.
 
 ### Prisma 6 em vez de 7+
 O Prisma 7+ exige driver adapters e `prisma.config.ts`, o que adiciona complexidade sem benefício para SQLite + JS no MVP. A versão está fixada em `~6.19.3`.
@@ -89,7 +90,7 @@ O Prisma 7+ exige driver adapters e `prisma.config.ts`, o que adiciona complexid
 - `PUBLIC_URL` (opcional, padrão `http://localhost:PORT`) define a base do link enviado no Telegram.
 
 ### Ambiente (devcontainer)
-- O firewall libera `registry.npmjs.org`, `api.anthropic.com`, `binaries.prisma.sh`, `api.telegram.org` e `routellm.abacus.ai`. Se `LLM_BASE_URL` mudar de host, ele precisa ser adicionado.
+- O firewall libera `registry.npmjs.org`, `api.anthropic.com`, `binaries.prisma.sh`, `api.telegram.org`, `routellm.abacus.ai` e `api.groq.com`. Se `LLM_BASE_URL` ou `TRANSCRIPTION_BASE_URL` mudarem de host, o novo host precisa ser adicionado.
 - A porta 3000 está encaminhada para acessar o painel fora do container.
 
 ## 4. Limitações conhecidas e pendências
@@ -105,3 +106,14 @@ O Prisma 7+ exige driver adapters e `prisma.config.ts`, o que adiciona complexid
 - **Mesma validação da edição:** tipo e categoria só das listas de `packages/shared`, datas reais; valor inválido → `400 Dados inválidos`. Parâmetros desconhecidos são descartados, como os campos extras do `PUT`.
 - **Sem filtro por Atividade:** o lançamento ainda não tem atividade (RF08 fora do escopo). Entra quando o RF08 for implementado.
 - No front, os filtros recarregam a lista a cada mudança; uma resposta que chega depois de o filtro mudar de novo é descartada.
+
+### Registro por áudio (RF05)
+- **Áudio vira texto e segue o fluxo do texto:** depois da transcrição, nada muda (extração, rascunho, botões, gravação). Corrigir por áudio funciona sem código extra, porque o rascunho pendente absorve a próxima mensagem, seja texto ou voz.
+- **O bot mostra o que entendeu** (`🎤 Entendi: "…"`) antes do resumo, para o usuário perceber um valor mal transcrito antes de confirmar. Nada é salvo sem ✅ (RF12).
+- **Provedor desacoplado:** o bot só conhece o contrato `transcribe(audio) → texto`, injetado como o `extractTransaction`. O adaptador `llm/transcribers/openaiCompatible.js` atende qualquer API `/audio/transcriptions` no padrão OpenAI (Groq, OpenAI…): trocar é só mudar `TRANSCRIPTION_*` no `.env`. Um provedor com API própria (Deepgram, AssemblyAI, Gemini) entra como um novo adaptador com o mesmo contrato, sem tocar nos handlers.
+- **Escolha da Groq:** comparados em nov/2026, todos custariam menos de US$ 5/mês no uso previsto. A Groq (`whisper-large-v3-turbo`, US$ 0,04 por hora de áudio, mínimo de 10 s por requisição) é a mais barata e o plano gratuito (8 h de áudio/dia) cobre o uso. O RouteLLM lista modelos de transcrição, mas não tem a rota `/audio/transcriptions` (404).
+- **Sem conversão de formato:** a voz do Telegram (OGG/Opus) vai direto ao provedor como `voice.ogg`, então não é preciso `ffmpeg`. Idioma fixo `pt`.
+- **Limite de 60 s** (`MAX_VOICE_SECONDS`): um lançamento se fala em poucos segundos; áudio maior é recusado antes do download, com orientação para encurtar ou escrever.
+- **Só mensagens de voz** (`message:voice`, gravadas no app). Arquivos de áudio anexados não são tratados (YAGNI).
+- **O áudio não é guardado:** `rawText` recebe a transcrição; o schema não mudou.
+- **Erros explícitos:** falha no download ou na transcrição é logada e responde com mensagem amigável, sem criar rascunho; transcrição vazia pede para repetir sem chamar a LLM. O download do arquivo usa uma URL com o token do bot, então o erro de download nunca inclui a URL.

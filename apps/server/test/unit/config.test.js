@@ -9,6 +9,9 @@ const ENV = {
   LLM_MODEL: 'model',
   JWT_SECRET: 'secret',
   DATABASE_URL: 'file:./x.db',
+  TRANSCRIPTION_API_KEY: 'stt-key',
+  TRANSCRIPTION_BASE_URL: 'http://stt',
+  TRANSCRIPTION_MODEL: 'whisper',
 }
 
 test('builds the config from the environment', () => {
@@ -17,6 +20,7 @@ test('builds the config from the environment', () => {
   assert.deepEqual(config, {
     telegramToken: 'tg',
     llm: { apiKey: 'key', baseUrl: 'http://llm', model: 'model' },
+    transcription: { apiKey: 'stt-key', baseUrl: 'http://stt', model: 'whisper' },
     jwtSecret: 'secret',
     port: 3000,
     publicUrl: 'https://pitaya.example',
@@ -38,4 +42,16 @@ test('fails fast naming every missing required variable', (t) => {
   assert.throws(() => loadConfig(incomplete), /exit/)
   assert.deepEqual(exit.mock.calls[0].arguments, [1])
   assert.equal(error.mock.calls[0].arguments[0], 'Missing required env vars: TELEGRAM_TOKEN, JWT_SECRET')
+})
+
+test('the transcription provider settings are required', (t) => {
+  t.mock.method(process, 'exit', () => { throw new Error('exit') })
+  const error = t.mock.method(console, 'error', () => {})
+  const { TRANSCRIPTION_API_KEY, TRANSCRIPTION_BASE_URL, TRANSCRIPTION_MODEL, ...incomplete } = ENV
+
+  assert.throws(() => loadConfig(incomplete), /exit/)
+  assert.equal(
+    error.mock.calls[0].arguments[0],
+    'Missing required env vars: TRANSCRIPTION_API_KEY, TRANSCRIPTION_BASE_URL, TRANSCRIPTION_MODEL',
+  )
 })
