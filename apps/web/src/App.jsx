@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { TYPE_LABELS, formatCents } from '@pitayapay/shared'
 import { loginFromUrl, hasSession, fetchTransactions, updateTransaction, deleteTransaction } from './api.js'
 import EditRow from './EditRow.jsx'
@@ -23,6 +23,49 @@ function Totals({ totals }) {
   )
 }
 
+function RowMenu({ onEdit, onDelete }) {
+  const [open, setOpen] = useState(false)
+  const menuRef = useRef(null)
+
+  useEffect(() => {
+    if (!open) return
+    const closeOnOutsideClick = (event) => !menuRef.current.contains(event.target) && setOpen(false)
+    const closeOnEscape = (event) => event.key === 'Escape' && setOpen(false)
+    document.addEventListener('mousedown', closeOnOutsideClick)
+    document.addEventListener('keydown', closeOnEscape)
+    return () => {
+      document.removeEventListener('mousedown', closeOnOutsideClick)
+      document.removeEventListener('keydown', closeOnEscape)
+    }
+  }, [open])
+
+  const choose = (action) => () => {
+    setOpen(false)
+    action()
+  }
+
+  return (
+    <div className="row-menu" ref={menuRef}>
+      <button
+        type="button"
+        className="secondary"
+        aria-label="Ações"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen(!open)}
+      >
+        ⋯
+      </button>
+      {open && (
+        <div className="row-menu-items" role="menu">
+          <button type="button" role="menuitem" className="secondary" onClick={choose(onEdit)}>Editar</button>
+          <button type="button" role="menuitem" className="danger" onClick={choose(onDelete)}>Excluir</button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function TransactionRow({ transaction: t, onEdit, onDelete }) {
   return (
     <tr className={t.type}>
@@ -32,8 +75,7 @@ function TransactionRow({ transaction: t, onEdit, onDelete }) {
       <td>{t.category}</td>
       <td>{t.description}</td>
       <td className="actions">
-        <button type="button" className="secondary" onClick={onEdit}>Editar</button>
-        <button type="button" className="danger" onClick={onDelete}>Excluir</button>
+        <RowMenu onEdit={onEdit} onDelete={onDelete} />
       </td>
     </tr>
   )
